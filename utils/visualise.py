@@ -207,31 +207,39 @@ def plot_elevator_trace(trace: list[dict], n_floors: int, save: bool = True):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def plot_q_heatmap(agent, n_floors: int, save: bool = True):
-    """
-    Visualises learned Q-values for simplified states (no pending calls).
-    Each row = floor, each column = action.
-    """
     action_labels = ["DOWN", "STAY", "UP"]
-    q_matrix = np.zeros((n_floors, 3))
+    q_matrix = np.full((n_floors, 3), np.nan)
 
-    for floor in range(n_floors):
-        # Simplified state: at this floor, idle, no calls, empty elevator
-        state = (floor, 1, 0, 0, 0, 0)
-        q_vals = agent.Q[state]
+    # Use the most-visited state per floor from the actual Q-table
+    floor_best = {}
+    for state, q_vals in agent.Q.items():
+        floor = state[0]
+        if floor not in floor_best:
+            floor_best[floor] = q_vals
+        else:
+            # prefer state with highest max Q-value (most learned)
+            if np.max(q_vals) > np.max(floor_best[floor]):
+                floor_best[floor] = q_vals
+
+    for floor, q_vals in floor_best.items():
         q_matrix[floor] = q_vals
+
+    # Fill any unvisited floors with zeros
+    q_matrix = np.nan_to_num(q_matrix, nan=0.0)
 
     fig, ax = plt.subplots(figsize=(6, 8))
     fig.patch.set_facecolor("#0d1117")
     ax.set_facecolor("#161b22")
 
+    vabs = max(abs(q_matrix.min()), abs(q_matrix.max())) or 1
     im = ax.imshow(q_matrix, aspect="auto", cmap="RdYlGn",
-                   vmin=q_matrix.min(), vmax=q_matrix.max())
+                   vmin=-vabs, vmax=vabs)
 
     ax.set_xticks(range(3))
     ax.set_xticklabels(action_labels, color="white")
     ax.set_yticks(range(n_floors))
     ax.set_yticklabels([f"Floor {i}" for i in range(n_floors)], color="white")
-    ax.set_title(f"Q-Value Heatmap — {agent.__class__.__name__}\n(no pending calls)",
+    ax.set_title(f"Q-Value Heatmap — {agent.__class__.__name__}\n(best learned state per floor)",
                  color="white", fontsize=12)
     ax.tick_params(colors="white")
     ax.spines[:].set_color("#30363d")

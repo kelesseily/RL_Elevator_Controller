@@ -45,7 +45,7 @@ def parse_args():
     p.add_argument("--capacity",     type=int,   default=8,     help="Max elevator capacity")
     p.add_argument("--arrival-rate", type=float, default=0.3,   help="Poisson arrival rate")
     p.add_argument("--max-steps",    type=int,   default=500,   help="Steps per episode")
-    p.add_argument("--episodes",     type=int,   default=1500,  help="Training episodes")
+    p.add_argument("--episodes",     type=int,   default=5000,  help="Training episodes")
     p.add_argument("--eval-episodes",type=int,   default=50,    help="Evaluation episodes")
     p.add_argument("--alpha",        type=float, default=0.1,   help="Learning rate")
     p.add_argument("--gamma",        type=float, default=0.99,  help="Discount factor")
@@ -74,21 +74,24 @@ def make_env(args, seed_offset: int = 0) -> ElevatorEnv:
 def record_trace(agent_or_controller, env: ElevatorEnv) -> list[dict]:
     """Run one episode and record per-step info for trace plot."""
     trace = []
-    if hasattr(agent_or_controller, "select_action"):
-        # Baseline controller expects env object
-        env.reset()
-        done = False
-        while not done:
-            action = agent_or_controller.select_action(env)
-            _, _, done, info = env.step(action)
-            trace.append(info)
-    else:
+    from agents.q_learning import QLearningAgent
+    from agents.sarsa import SARSAAgent
+
+    if isinstance(agent_or_controller, (QLearningAgent, SARSAAgent)):
         # RL agent expects state tuple
         state = env.reset()
         done  = False
         while not done:
             action = agent_or_controller.select_action(state, greedy=True)
             state, _, done, info = env.step(action)
+            trace.append(info)
+    else:
+        # Baseline controller expects env object
+        env.reset()
+        done = False
+        while not done:
+            action = agent_or_controller.select_action(env)
+            _, _, done, info = env.step(action)
             trace.append(info)
     return trace
 

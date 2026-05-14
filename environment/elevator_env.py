@@ -147,7 +147,11 @@ class ElevatorEnv:
         reward += served_count * self.service_reward
         self.episode_metrics["served"] += served_count
 
-        # 4. Record
+        # 4. Waiting penalty — capped at 10 to prevent unbounded explosion
+        total_waiting = sum(len(p) for p in self.waiting_passengers.values())
+        reward -= self.waiting_penalty * min(total_waiting, 10)
+
+        # 5. Record
         self.episode_metrics["rewards"].append(reward)
         self.current_step += 1
         done = self.current_step >= self.max_steps
@@ -183,38 +187,35 @@ class ElevatorEnv:
         """
         direction_idx = self.elevator_direction + 1   # map -1,0,1 → 0,1,2
 
-        hall_up   = 0
-        hall_down = 0
-        car_calls = 0
+        floor = self.elevator_floor
 
-        for floor, plist in self.waiting_passengers.items():
-            for p in plist:
-                if p.destination > floor:
-                    hall_up |= (1 << floor)
-                else:
-                    hall_down |= (1 << floor)
+        # Binary signals only — keeps state space small and learnable
+        calls_above = int(any(f > floor for f in self.waiting_passengers))
+        calls_below = int(any(f < floor for f in self.waiting_passengers))
+        calls_here  = int(floor in self.waiting_passengers and
+                         bool(self.waiting_passengers[floor]))
 
-        for p in self.passengers_inside:
-            car_calls |= (1 << p.destination)
+        dest_above  = int(any(p.destination > floor for p in self.passengers_inside))
+        dest_below  = int(any(p.destination < floor for p in self.passengers_inside))
 
-        # Bucket in-elevator count to reduce state space
+        # 0 = empty, 1 = partial, 2 = full
         n_inside = len(self.passengers_inside)
         if n_inside == 0:
-            inside_bin = 0
-        elif n_inside <= 2:
-            inside_bin = 1
-        elif n_inside <= 5:
-            inside_bin = 2
+            load = 0
+        elif n_inside < self.max_capacity:
+            load = 1
         else:
-            inside_bin = 3
+            load = 2
 
         return (
-            self.elevator_floor,
+            floor,
             direction_idx,
-            hall_up,
-            hall_down,
-            car_calls,
-            inside_bin,
+            calls_above,
+            calls_below,
+            calls_here,
+            dest_above,
+            dest_below,
+            load,
         )
 
     def get_state_as_dict(self) -> dict:

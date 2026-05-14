@@ -36,7 +36,8 @@ class SARSAAgent:
         gamma: float         = 0.99,
         epsilon: float       = 1.0,
         epsilon_min: float   = 0.05,
-        epsilon_decay: float = 0.995,
+        epsilon_decay: float = 0.9995,
+        current_episode: int  = 0,
     ):
         self.n_actions     = n_actions
         self.alpha         = alpha
@@ -44,6 +45,7 @@ class SARSAAgent:
         self.epsilon       = epsilon
         self.epsilon_min   = epsilon_min
         self.epsilon_decay = epsilon_decay
+        self.current_episode = current_episode
 
         self.Q: dict = defaultdict(lambda: np.zeros(self.n_actions))
 
@@ -69,11 +71,12 @@ class SARSAAgent:
         """
         SARSA update — uses the on-policy next action (not max).
         """
+        alpha = max(0.01, self.alpha * (0.9995 ** self.current_episode))
         current_q  = self.Q[state][action]
         next_q     = 0.0 if done else self.Q[next_state][next_action]
         td_target  = reward + self.gamma * next_q
         td_error   = td_target - current_q
-        self.Q[state][action] += self.alpha * td_error
+        self.Q[state][action] += alpha * td_error
 
     # ──────────────────────────────────────────────────────────────────────────
     # Epsilon Decay
@@ -82,6 +85,7 @@ class SARSAAgent:
     def decay_epsilon(self):
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         self.epsilons.append(self.epsilon)
+        self.current_episode += 1
 
     # ──────────────────────────────────────────────────────────────────────────
     # Training Loop
