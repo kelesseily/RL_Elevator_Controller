@@ -1,0 +1,442 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --shaft:#111318;
+  --floor-line:rgba(255,255,255,0.06);
+  --elevator-bg:#1a2744;
+  --elevator-border:#3a6ff8;
+  --cab-glow:rgba(58,111,248,0.35);
+  --text-primary:#f0f4ff;
+  --text-muted:#6b7a9e;
+  --waiting-color:#f0a000;
+  --serving-color:#00e5a0;
+  --inside-color:#3a6ff8;
+  --danger:#ff4466;
+  --panel-bg:rgba(10,12,20,0.92);
+}
+
+body{background:#09090f;font-family:'JetBrains Mono',monospace;color:var(--text-primary);overflow-x:hidden}
+
+.scene{display:grid;grid-template-columns:280px 1fr 260px;gap:0;height:620px;max-width:900px;margin:0 auto;padding:20px 0}
+
+.building{position:relative;background:var(--shaft);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+
+.floor-row{flex:1;display:flex;align-items:center;border-bottom:1px solid var(--floor-line);position:relative;padding:0 10px;gap:8px}
+.floor-row:last-child{border-bottom:none}
+.floor-label{font-size:11px;color:var(--text-muted);font-family:'Syne',sans-serif;font-weight:700;letter-spacing:1px;width:22px;flex-shrink:0}
+.floor-platform{flex:1;height:2px;background:rgba(255,255,255,0.06);border-radius:1px;position:relative}
+.floor-platform.active-floor{background:rgba(58,111,248,0.3)}
+.waiting-dots{display:flex;gap:4px;align-items:center;min-width:60px;justify-content:flex-end}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--waiting-color);animation:pulse 1.4s ease-in-out infinite;flex-shrink:0;transition:all 0.3s}
+.dot.boarding{background:var(--inside-color);animation:boardAnim 0.4s ease forwards}
+
+@keyframes pulse{0%,100%{opacity:0.6;transform:scale(0.9)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes boardAnim{0%{transform:translateX(0);opacity:1}100%{transform:translateX(-30px);opacity:0}}
+
+.shaft-area{position:relative;width:50px;background:linear-gradient(to bottom,rgba(20,30,60,0.5),rgba(10,15,30,0.8));border-left:1px solid rgba(58,111,248,0.15);border-right:1px solid rgba(58,111,248,0.15);display:flex;flex-direction:column;align-items:center;overflow:hidden}
+
+.shaft-track{position:absolute;top:0;left:50%;transform:translateX(-50%);width:2px;height:100%;background:rgba(58,111,248,0.2)}
+.shaft-glow{position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 50% 50%,rgba(58,111,248,0.05) 0%,transparent 70%)}
+
+.elevator-car{position:absolute;left:50%;transform:translateX(-50%);width:44px;transition:top 0.6s cubic-bezier(0.4,0,0.2,1);z-index:10}
+
+.cab{width:44px;height:48px;background:var(--elevator-bg);border:2px solid var(--elevator-border);border-radius:6px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;box-shadow:0 0 20px var(--cab-glow),inset 0 1px 0 rgba(255,255,255,0.1)}
+.cab-door{display:flex;gap:2px;width:32px}
+.cab-door-panel{flex:1;height:28px;background:rgba(58,111,248,0.15);border:1px solid rgba(58,111,248,0.3);border-radius:2px;transition:transform 0.3s ease}
+.cab-door-panel.open-l{transform:scaleX(0.1);transform-origin:left}
+.cab-door-panel.open-r{transform:scaleX(0.1);transform-origin:right}
+.cab-load{font-size:9px;color:#a0c0ff;font-weight:600;letter-spacing:0.5px}
+.direction-arrow{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:14px;transition:all 0.3s}
+.cable{position:absolute;top:-600px;left:50%;transform:translateX(-50%);width:2px;background:linear-gradient(to bottom,rgba(100,150,255,0.4),rgba(58,111,248,0.8));height:600px}
+
+.right-panel{display:flex;flex-direction:column;gap:12px;padding-left:16px}
+
+.status-card{background:var(--panel-bg);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px}
+.card-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px}
+
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:11px;color:var(--text-muted)}
+.stat-val{font-size:13px;font-weight:600;color:var(--text-primary)}
+.stat-val.green{color:var(--serving-color)}
+.stat-val.blue{color:var(--inside-color)}
+.stat-val.amber{color:var(--waiting-color)}
+
+.event-log{flex:1;background:var(--panel-bg);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;overflow:hidden;display:flex;flex-direction:column}
+.log-list{flex:1;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:4px}
+.log-list::-webkit-scrollbar{width:3px}
+.log-list::-webkit-scrollbar-track{background:transparent}
+.log-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+.log-entry{font-size:10px;padding:5px 8px;border-radius:5px;border-left:2px solid;animation:fadeIn 0.3s ease;line-height:1.4}
+.log-entry.serve{border-color:var(--serving-color);background:rgba(0,229,160,0.05);color:rgba(0,229,160,0.9)}
+.log-entry.arrive{border-color:var(--waiting-color);background:rgba(240,160,0,0.05);color:rgba(240,160,0,0.9)}
+.log-entry.move{border-color:var(--inside-color);background:rgba(58,111,248,0.05);color:rgba(100,160,255,0.9)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+.controls{background:var(--panel-bg);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;padding:7px 14px;border-radius:6px;border:1px solid;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px}
+.btn-play{background:rgba(58,111,248,0.15);border-color:rgba(58,111,248,0.5);color:#80aaff}
+.btn-play:hover{background:rgba(58,111,248,0.3)}
+.btn-play.paused{background:rgba(0,229,160,0.15);border-color:rgba(0,229,160,0.5);color:#00e5a0}
+.btn-reset{background:rgba(255,68,102,0.1);border-color:rgba(255,68,102,0.3);color:#ff6688}
+.btn-reset:hover{background:rgba(255,68,102,0.2)}
+.speed-label{font-size:10px;color:var(--text-muted);align-self:center;margin-left:auto}
+.speed-btns{display:flex;gap:4px}
+.btn-speed{font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 8px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;background:transparent;color:var(--text-muted);transition:all 0.2s}
+.btn-speed.active{background:rgba(58,111,248,0.2);border-color:rgba(58,111,248,0.5);color:#80aaff}
+
+.header{text-align:center;padding:16px 0 8px;position:relative}
+.header-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px;color:var(--text-primary)}
+.header-sub{font-size:11px;color:var(--text-muted);letter-spacing:2px;margin-top:2px}
+.algo-badge{display:inline-block;background:rgba(58,111,248,0.15);border:1px solid rgba(58,111,248,0.3);border-radius:20px;padding:3px 12px;font-size:10px;color:#80aaff;letter-spacing:1px;margin-top:6px}
+
+.progress-bar{height:2px;background:rgba(255,255,255,0.05);border-radius:1px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#3a6ff8,#00e5a0);border-radius:1px;transition:width 0.1s linear}
+
+.floor-num-col{display:flex;flex-direction:column;justify-content:space-around;padding:0 6px 0 0;height:100%}
+.fn{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-align:right}
+
+.passengers-inside{display:flex;flex-wrap:wrap;gap:3px;padding:4px 0}
+.p-badge{font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(58,111,248,0.2);border:1px solid rgba(58,111,248,0.3);color:#80aaff;font-weight:600}
+</style>
+
+<h2 class="sr-only">SmartLift elevator simulation — animated visualization of RL-based elevator control</h2>
+
+<div class="header">
+  <div class="header-title">SmartLift</div>
+  <div class="header-sub">RL-Based Elevator Control System</div>
+  <div class="algo-badge" id="algo-badge">SARSA Controller</div>
+  <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+</div>
+
+<div class="scene">
+  <div class="building" id="building"></div>
+
+  <div class="shaft-area" id="shaft">
+    <div class="shaft-track"></div>
+    <div class="shaft-glow"></div>
+    <div class="elevator-car" id="elevator-car">
+      <div class="cable"></div>
+      <div class="direction-arrow" id="dir-arrow">●</div>
+      <div class="cab" id="cab">
+        <div class="cab-door">
+          <div class="cab-door-panel" id="door-l"></div>
+          <div class="cab-door-panel" id="door-r"></div>
+        </div>
+        <div class="cab-load" id="cab-load">0/8</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="controls">
+      <button class="btn btn-play" id="btn-play" onclick="togglePlay()">⏸ PAUSE</button>
+      <button class="btn btn-reset" onclick="resetSim()">↺ RESET</button>
+      <span class="speed-label">Speed</span>
+      <div class="speed-btns">
+        <button class="btn-speed" onclick="setSpeed(1)" id="sp1">1×</button>
+        <button class="btn-speed active" onclick="setSpeed(2)" id="sp2">2×</button>
+        <button class="btn-speed" onclick="setSpeed(4)" id="sp4">4×</button>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title">Live Status</div>
+      <div class="stat-row"><span class="stat-label">Floor</span><span class="stat-val blue" id="s-floor">5</span></div>
+      <div class="stat-row"><span class="stat-label">Direction</span><span class="stat-val" id="s-dir">IDLE</span></div>
+      <div class="stat-row"><span class="stat-label">Inside</span><span class="stat-val blue" id="s-inside">0</span></div>
+      <div class="stat-row"><span class="stat-label">Waiting</span><span class="stat-val amber" id="s-waiting">0</span></div>
+      <div class="stat-row"><span class="stat-label">Step</span><span class="stat-val" id="s-step">0 / 500</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title">Episode Metrics</div>
+      <div class="stat-row"><span class="stat-label">Served</span><span class="stat-val green" id="m-served">0</span></div>
+      <div class="stat-row"><span class="stat-label">Movements</span><span class="stat-val" id="m-moves">0</span></div>
+      <div class="stat-row"><span class="stat-label">Avg Wait</span><span class="stat-val" id="m-wait">—</span></div>
+    </div>
+
+    <div class="event-log">
+      <div class="card-title">Event Log</div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const N_FLOORS = 10;
+const MAX_CAP = 8;
+const ARRIVAL_RATE = 0.3;
+const MAX_STEPS = 500;
+
+let rng = mulberry32(42);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+let simState = null;
+let animFrame = null;
+let playing = true;
+let speed = 2;
+let lastTime = 0;
+let stepInterval = 600;
+let accumulator = 0;
+
+function initSim(){
+  rng = mulberry32(42 + Math.floor(Math.random()*1000));
+  simState = {
+    floor: 5,
+    direction: 0,
+    inside: [],
+    waiting: {},
+    step: 0,
+    served: 0,
+    moves: 0,
+    waitTimes: [],
+    nextId: 0,
+    doorsOpen: false,
+    doorTimer: 0,
+  };
+  buildBuilding();
+  buildShaft();
+  updateElevatorPos(true);
+  updateUI();
+}
+
+function buildBuilding(){
+  const b = document.getElementById('building');
+  b.innerHTML = '';
+  for(let f = N_FLOORS-1; f >= 0; f--){
+    const row = document.createElement('div');
+    row.className = 'floor-row';
+    row.id = 'floor-row-' + f;
+    row.innerHTML = `<span class="floor-label">F${f}</span><div class="floor-platform" id="plat-${f}"></div><div class="waiting-dots" id="dots-${f}"></div>`;
+    b.appendChild(row);
+  }
+}
+
+function buildShaft(){
+  updateElevatorPos(true);
+}
+
+function floorY(f){
+  const shaft = document.getElementById('shaft');
+  const h = shaft.clientHeight || 580;
+  const rowH = h / N_FLOORS;
+  const fromTop = (N_FLOORS - 1 - f) * rowH + rowH/2;
+  return fromTop - 24;
+}
+
+function updateElevatorPos(instant){
+  const car = document.getElementById('elevator-car');
+  const y = floorY(simState.floor);
+  if(instant){
+    car.style.transition = 'none';
+    car.style.top = y + 'px';
+    setTimeout(()=>{ car.style.transition = 'top 0.55s cubic-bezier(0.4,0,0.2,1)'; }, 50);
+  } else {
+    car.style.top = y + 'px';
+  }
+}
+
+function spawnPassengers(){
+  const n = poissonSample(ARRIVAL_RATE);
+  for(let i=0;i<n;i++){
+    const origin = Math.floor(rng() * N_FLOORS);
+    let dest = Math.floor(rng() * N_FLOORS);
+    while(dest === origin) dest = Math.floor(rng() * N_FLOORS);
+    const p = {id: simState.nextId++, origin, dest, arrivalStep: simState.step};
+    if(!simState.waiting[origin]) simState.waiting[origin] = [];
+    simState.waiting[origin].push(p);
+    addLog(`arrive`, `Passenger → F${origin}→F${dest}`);
+  }
+}
+
+function poissonSample(lambda){
+  let L=Math.exp(-lambda),k=0,p=1;
+  do{k++;p*=rng();}while(p>L);
+  return k-1;
+}
+
+function sarsa_action(){
+  const f = simState.floor;
+  const inside = simState.inside;
+  const waiting = simState.waiting;
+  const dropHere = inside.some(p=>p.dest===f);
+  const waitHere = waiting[f] && waiting[f].length > 0;
+  if(dropHere || waitHere) return 1;
+  const allTargets = [...inside.map(p=>p.dest), ...Object.keys(waiting).map(Number)];
+  if(!allTargets.length) return 1;
+  const nearest = allTargets.reduce((a,b)=>Math.abs(b-f)<Math.abs(a-f)?b:a);
+  if(nearest > f) return 2;
+  if(nearest < f) return 0;
+  return 1;
+}
+
+function stepSim(){
+  if(simState.step >= MAX_STEPS) return false;
+  spawnPassengers();
+  const action = sarsa_action();
+  let moved = false;
+  if(action === 2 && simState.floor < N_FLOORS-1){
+    simState.floor++;
+    simState.direction = 1;
+    simState.moves++;
+    moved = true;
+  } else if(action === 0 && simState.floor > 0){
+    simState.floor--;
+    simState.direction = -1;
+    simState.moves++;
+    moved = true;
+  } else {
+    simState.direction = 0;
+  }
+  if(moved) addLog('move', `Moving to F${simState.floor}`);
+  serveFloor();
+  simState.step++;
+  return true;
+}
+
+function serveFloor(){
+  const f = simState.floor;
+  const dropOff = simState.inside.filter(p=>p.dest===f);
+  const keep = simState.inside.filter(p=>p.dest!==f);
+  dropOff.forEach(p=>{
+    simState.served++;
+    const wt = simState.step - p.arrivalStep;
+    simState.waitTimes.push(wt);
+    addLog('serve', `Delivered F${p.origin}→F${f} (wait ${wt}s)`);
+  });
+  simState.inside = keep;
+  const space = MAX_CAP - simState.inside.length;
+  if(space > 0 && simState.waiting[f] && simState.waiting[f].length > 0){
+    const board = simState.waiting[f].splice(0, space);
+    board.forEach(p=>{ simState.inside.push(p); });
+    if(!simState.waiting[f].length) delete simState.waiting[f];
+    if(board.length) addLog('move', `Boarded ${board.length} at F${f}`);
+  }
+  simState.doorsOpen = dropOff.length > 0 || (simState.waiting[f]===undefined ? false : false);
+}
+
+function addLog(type, msg){
+  const list = document.getElementById('log-list');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + type;
+  el.textContent = `[${simState.step}] ${msg}`;
+  list.prepend(el);
+  if(list.children.length > 60) list.lastChild.remove();
+}
+
+function updateUI(){
+  const s = simState;
+  document.getElementById('s-floor').textContent = 'F' + s.floor;
+  const dirMap = {'-1':'▼ DOWN','0':'● IDLE','1':'▲ UP'};
+  const dirEl = document.getElementById('s-dir');
+  dirEl.textContent = dirMap[s.direction];
+  dirEl.style.color = s.direction===1?'#00e5a0':s.direction===-1?'#ff6688':'#6b7a9e';
+  document.getElementById('s-inside').textContent = s.inside.length;
+  const totalWaiting = Object.values(s.waiting).reduce((a,b)=>a+b.length,0);
+  document.getElementById('s-waiting').textContent = totalWaiting;
+  document.getElementById('s-step').textContent = `${s.step} / ${MAX_STEPS}`;
+  document.getElementById('m-served').textContent = s.served;
+  document.getElementById('m-moves').textContent = s.moves;
+  const avgW = s.waitTimes.length ? (s.waitTimes.reduce((a,b)=>a+b,0)/s.waitTimes.length).toFixed(1) : '—';
+  document.getElementById('m-wait').textContent = avgW === '—' ? '—' : avgW + 's';
+  document.getElementById('cab-load').textContent = s.inside.length + '/' + MAX_CAP;
+  const arrow = document.getElementById('dir-arrow');
+  arrow.textContent = s.direction===1?'▲':s.direction===-1?'▼':'●';
+  arrow.style.color = s.direction===1?'#00e5a0':s.direction===-1?'#ff6688':'#6b7a9e';
+  const doorL = document.getElementById('door-l');
+  const doorR = document.getElementById('door-r');
+  if(s.direction===0 && s.inside.length>0){
+    doorL.classList.add('open-l');
+    doorR.classList.add('open-r');
+  } else {
+    doorL.classList.remove('open-l');
+    doorR.classList.remove('open-r');
+  }
+  const cab = document.getElementById('cab');
+  const load = s.inside.length / MAX_CAP;
+  if(load > 0.75) cab.style.borderColor = '#ff6688';
+  else if(load > 0.4) cab.style.borderColor = '#f0a000';
+  else cab.style.borderColor = '#3a6ff8';
+  for(let f=0;f<N_FLOORS;f++){
+    const dotsEl = document.getElementById('dots-' + f);
+    if(!dotsEl) continue;
+    const count = (s.waiting[f]||[]).length;
+    dotsEl.innerHTML = '';
+    const show = Math.min(count, 5);
+    for(let i=0;i<show;i++){
+      const d = document.createElement('div');
+      d.className = 'dot';
+      d.style.animationDelay = (i*0.15)+'s';
+      dotsEl.appendChild(d);
+    }
+    if(count > 5){
+      const more = document.createElement('span');
+      more.style.cssText='font-size:9px;color:var(--waiting-color);font-weight:600';
+      more.textContent='+' + (count-5);
+      dotsEl.appendChild(more);
+    }
+    const plat = document.getElementById('plat-' + f);
+    if(plat) plat.classList.toggle('active-floor', f===s.floor);
+  }
+  document.getElementById('prog').style.width = (s.step/MAX_STEPS*100)+'%';
+  updateElevatorPos(false);
+}
+
+let ticker = null;
+function loop(ts){
+  if(!playing){ animFrame=null; return; }
+  if(!lastTime) lastTime=ts;
+  accumulator += (ts-lastTime) * speed;
+  lastTime = ts;
+  const targetInterval = stepInterval;
+  while(accumulator >= targetInterval){
+    accumulator -= targetInterval;
+    if(!stepSim()){ playing=false; document.getElementById('btn-play').textContent='✓ DONE'; break; }
+    updateUI();
+  }
+  animFrame = requestAnimationFrame(loop);
+}
+
+function togglePlay(){
+  playing = !playing;
+  const btn = document.getElementById('btn-play');
+  if(playing){
+    btn.textContent='⏸ PAUSE';
+    btn.classList.remove('paused');
+    lastTime=0;
+    animFrame=requestAnimationFrame(loop);
+  } else {
+    btn.textContent='▶ PLAY';
+    btn.classList.add('paused');
+    if(animFrame) cancelAnimationFrame(animFrame);
+  }
+}
+
+function resetSim(){
+  if(animFrame) cancelAnimationFrame(animFrame);
+  playing=true;
+  lastTime=0;
+  accumulator=0;
+  const btn=document.getElementById('btn-play');
+  btn.textContent='⏸ PAUSE';
+  btn.classList.remove('paused');
+  document.getElementById('log-list').innerHTML='';
+  initSim();
+  animFrame=requestAnimationFrame(loop);
+}
+
+function setSpeed(s){
+  speed=s;
+  ['1','2','4'].forEach(v=>document.getElementById('sp'+v).classList.remove('active'));
+  document.getElementById('sp'+s).classList.add('active');
+}
+
+window.addEventListener('load',()=>{
+  initSim();
+  animFrame=requestAnimationFrame(loop);
+});
+</script>

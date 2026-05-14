@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from environment.elevator_env import ElevatorEnv
 from agents.q_learning          import QLearningAgent
 from agents.sarsa               import SARSAAgent
-from baselines.rule_based       import NearestRequestController, FCFSController
+from baselines.rule_based       import NearestRequestController, FCFSController, MPCController
 from utils.visualise            import (
     plot_training_curves,
     plot_performance_comparison,
@@ -162,13 +162,14 @@ def main():
 
     nearest_ctrl = NearestRequestController()
     fcfs_ctrl    = FCFSController()
+    mpc_ctrl     = MPCController(horizon=6)
 
     metrics = {}
     metrics["Q-Learning"]      = ql_agent.evaluate(eval_env, n_episodes=args.eval_episodes)
     metrics["SARSA"]           = sarsa_agent.evaluate(eval_env, n_episodes=args.eval_episodes)
     metrics["Nearest-Request"] = nearest_ctrl.evaluate(eval_env, n_episodes=args.eval_episodes)
     metrics["FCFS"]            = fcfs_ctrl.evaluate(eval_env, n_episodes=args.eval_episodes)
-
+    metrics["MPC"]             = mpc_ctrl.evaluate(eval_env, n_episodes=args.eval_episodes)
     print_metrics_table(metrics)
 
     # ── Plots ─────────────────────────────────────────────────────────────────

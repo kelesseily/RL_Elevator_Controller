@@ -193,7 +193,7 @@ class ElevatorEnv:
         calls_above = int(any(f > floor for f in self.waiting_passengers))
         calls_below = int(any(f < floor for f in self.waiting_passengers))
         calls_here  = int(floor in self.waiting_passengers and
-                         bool(self.waiting_passengers[floor]))
+                         bool(self.waiting_passengers.get(floor)))
 
         dest_above  = int(any(p.destination > floor for p in self.passengers_inside))
         dest_below  = int(any(p.destination < floor for p in self.passengers_inside))
@@ -288,7 +288,7 @@ class ElevatorEnv:
         self.passengers_inside = still_riding
 
         # Board waiting passengers (up to capacity)
-        if self.waiting_passengers[current_floor]:
+        if self.waiting_passengers.get(current_floor):
             available_space = self.max_capacity - len(self.passengers_inside)
             boarding = self.waiting_passengers[current_floor][:available_space]
             for p in boarding:
