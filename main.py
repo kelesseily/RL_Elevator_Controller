@@ -193,6 +193,18 @@ def main():
 
     print("\nDone. ✓")
 
+    import json
+
+    # Export Q-tables for visualization
+    def export_qtable(agent, filename):
+        # Convert tuple keys to strings for JSON
+        exportable = {str(k): list(v) for k, v in agent.Q.items()}
+        with open(f"results/{filename}", "w") as f:
+            json.dump(exportable, f)
+
+    export_qtable(ql_agent,    "qtable_qlearning.json")
+    export_qtable(sarsa_agent, "qtable_sarsa.json")
+    print("Q-tables exported.")
 
 if __name__ == "__main__":
     main()
